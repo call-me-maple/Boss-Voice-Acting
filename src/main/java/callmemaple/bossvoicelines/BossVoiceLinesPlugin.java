@@ -39,7 +39,8 @@ import static callmemaple.bossvoicelines.data.Quote.findQuote;
 )
 public class BossVoiceLinesPlugin extends Plugin
 {
-	private static final HttpUrl RAW_GITHUB = HttpUrl.parse("https://raw.githubusercontent.com/call-me-maple/Boss-Voice-Lines/sounds");
+	//https://github.com/call-me-maple/Boss-Voice-Lines/raw/audio/chaos-fanatic/burn%20test.wav
+	private static final HttpUrl RAW_GITHUB = HttpUrl.parse("https://raw.githubusercontent.com/call-me-maple/Boss-Voice-Lines/audio");
 
 	@Inject
 	private Client client;
@@ -136,7 +137,7 @@ public class BossVoiceLinesPlugin extends Plugin
 			}
 		} catch (UnsupportedAudioFileException | IOException | LineUnavailableException e)
 		{
-			log.warn("Failed to load quote " + quote, e);
+			log.warn("Failed to load quote " + quote.line, e);
 		}
 	}
 
@@ -191,7 +192,7 @@ public class BossVoiceLinesPlugin extends Plugin
 				.addPathSegment(quote.boss.folderName)
 				.addPathSegment(quote.filename).build();
 
-		if (quote.getFile().mkdirs())
+		if (quote.getFile().getParentFile().mkdirs())
 		{
 			log.debug("mkdirs {}", quote.getFile().getParent());
 		}
@@ -199,8 +200,13 @@ public class BossVoiceLinesPlugin extends Plugin
 		Path outputPath = quote.getFile().toPath();
 
 		try (Response res = okHttpClient.newCall(new Request.Builder().url(soundUrl).build()).execute()) {
-			if (res.body() != null)
+			if (res.isSuccessful() && res.body() != null)
+			{
 				Files.copy(new BufferedInputStream(res.body().byteStream()), outputPath, StandardCopyOption.REPLACE_EXISTING);
+			} else
+			{
+				log.error("url:{} response:{}", res.request().url(), res.body().string());
+			}
 		} catch (IOException e) {
 			log.error("could not download sounds", e);
 			return false;
