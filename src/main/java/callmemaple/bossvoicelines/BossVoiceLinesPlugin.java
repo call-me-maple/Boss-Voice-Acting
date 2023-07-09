@@ -39,7 +39,6 @@ import static callmemaple.bossvoicelines.data.Quote.findQuote;
 )
 public class BossVoiceLinesPlugin extends Plugin
 {
-	//https://github.com/call-me-maple/Boss-Voice-Lines/raw/audio/chaos-fanatic/burn%20test.wav
 	private static final HttpUrl RAW_GITHUB = HttpUrl.parse("https://raw.githubusercontent.com/call-me-maple/Boss-Voice-Lines/audio");
 
 	@Inject
@@ -107,7 +106,7 @@ public class BossVoiceLinesPlugin extends Plugin
 		{
 			if (!quote.getFile().exists())
 			{
-				log.warn("no file found {}", quote.getFile());
+				log.debug("no file found {}", quote.getFile());
 				if (!downloadQuote(quote))
 				{
 					// continue to the next quote if it can't be downloaded
@@ -120,7 +119,7 @@ public class BossVoiceLinesPlugin extends Plugin
 				loadClip(quote, newClip);
 			} catch (LineUnavailableException e)
 			{
-				log.warn("Failed to create clip ", e);
+				log.debug("Failed to create clip ", e);
 			}
 		}
 	}
@@ -137,7 +136,7 @@ public class BossVoiceLinesPlugin extends Plugin
 			}
 		} catch (UnsupportedAudioFileException | IOException | LineUnavailableException e)
 		{
-			log.warn("Failed to load quote " + quote.line, e);
+			log.error("Failed to load quote " + quote.line, e);
 		}
 	}
 
@@ -161,7 +160,6 @@ public class BossVoiceLinesPlugin extends Plugin
 		nowPlaying = clip;
 		clip.setFramePosition(0);
 		clip.loop(0);
-		log.debug("clip.loop hmm");
 	}
 
 	private void stopClip(Clip clip)
@@ -203,15 +201,14 @@ public class BossVoiceLinesPlugin extends Plugin
 			if (res.isSuccessful() && res.body() != null)
 			{
 				Files.copy(new BufferedInputStream(res.body().byteStream()), outputPath, StandardCopyOption.REPLACE_EXISTING);
-			} else
-			{
-				log.error("url:{} response:{}", res.request().url(), res.body().string());
+				return true;
 			}
+			log.error("url:{} response:{}", res.request().url(), res.body().string());
 		} catch (IOException e) {
 			log.error("could not download sounds", e);
 			return false;
 		}
-		return true;
+		return false;
 	}
 
 	@Subscribe
@@ -221,7 +218,6 @@ public class BossVoiceLinesPlugin extends Plugin
 
 		if (command.getCommand().equals("vo"))
 		{
-
 			if (arguments.length < 1)
 			{
 				return;
