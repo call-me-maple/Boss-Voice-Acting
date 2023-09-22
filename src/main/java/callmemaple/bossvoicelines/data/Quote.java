@@ -6,6 +6,7 @@ import net.runelite.client.RuneLite;
 import java.io.File;
 import java.util.Set;
 
+import static callmemaple.bossvoicelines.BossVoiceLinesPlugin.AUDIO_DIRECTORY;
 import static callmemaple.bossvoicelines.data.Boss.*;
 
 public class Quote
@@ -179,7 +180,7 @@ public class Quote
 
     public File getFile()
     {
-        String path = String.join(File.separator, RuneLite.RUNELITE_DIR.getPath(), "boss-voice-lines", boss.folderName, filename);
+        String path = String.join(File.separator, AUDIO_DIRECTORY, boss.folderName, filename);
         return new File(path);
     }
 

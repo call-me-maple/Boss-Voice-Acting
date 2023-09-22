@@ -18,13 +18,15 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok:1.18.20'
 	annotationProcessor 'org.projectlombok:lombok:1.18.20'
 
+	implementation 'commons-io:commons-io:2.13.0'
+
 	testImplementation 'junit:junit:4.12'
 	testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
 	testImplementation group: 'net.runelite', name:'jshell', version: runeLiteVersion
 }
 
 group = 'callmemaple.bossvoicelines'
-version = '1.0-SNAPSHOT'
+version = '1.0'
 sourceCompatibility = '1.8'
 
 tasks.withType(JavaCompile) {
@@ -33,6 +35,11 @@ tasks.withType(JavaCompile) {
 
 task createProperties(dependsOn: processResources) {
 	doLast {
+		new File("$rootDir/src/main/resources/version.properties").withWriter { w ->
+			Properties resourceProps = new Properties()
+			resourceProps['version'] = project.version.toString()
+			resourceProps.store w, null
+		}
 		new File("$buildDir/resources/main/version.properties").withWriter { w ->
 			Properties p = new Properties()
 			p['version'] = project.version.toString()

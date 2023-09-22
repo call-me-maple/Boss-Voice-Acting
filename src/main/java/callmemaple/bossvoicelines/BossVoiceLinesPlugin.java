@@ -12,9 +12,12 @@ import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
+import org.apache.commons.io.FileUtils;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.events.OverheadTextChanged;
+import net.runelite.client.RuneLite;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -27,6 +30,7 @@ import okhttp3.Response;
 import okhttp3.MediaType;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -34,8 +38,10 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
+import static callmemaple.bossvoicelines.BossVoiceLinesConfig.VERSION_KEY;
 import static callmemaple.bossvoicelines.data.Boss.*;
 import static callmemaple.bossvoicelines.data.Quote.findQuote;
 
@@ -45,11 +51,16 @@ import static callmemaple.bossvoicelines.data.Quote.findQuote;
 )
 public class BossVoiceLinesPlugin extends Plugin
 {
-	private static final HttpUrl RAW_GITHUB = HttpUrl.parse("https://raw.githubusercontent.com/call-me-maple/Boss-Voice-Lines/audio");
-	static final String CONFIG_GROUP = "boss-voice-lines";
+	@NonNull
+	private static final HttpUrl RAW_GITHUB = Objects.requireNonNull(HttpUrl.parse("https://raw.githubusercontent.com/call-me-maple/Boss-Voice-Lines/audio"));
+	public static final String CONFIG_GROUP = "boss-voice-lines";
+	public static final String AUDIO_DIRECTORY = String.join(File.separator, RuneLite.RUNELITE_DIR.getPath(), "boss-voice-lines");
 
 	@Inject
 	private Client client;
+
+	@Inject
+	private ConfigManager configManager;
 
 	@Inject
 	private BossVoiceLinesConfig config;
@@ -65,6 +76,7 @@ public class BossVoiceLinesPlugin extends Plugin
 	@Override
 	protected void startUp()
 	{
+		checkVersion();
 		loadClips();
 	}
 
@@ -72,24 +84,6 @@ public class BossVoiceLinesPlugin extends Plugin
 	protected void shutDown()
 	{
 		unloadClips();
-	}
-
-	private void checkVersion()
-	{
-		try (InputStream inputStream = BossVoiceLinesPlugin.class.getResourceAsStream("/version.properties"))
-		{
-			final Properties properties = new Properties();
-			properties.load(inputStream);
-			String currentVersion = properties.getProperty("version");
-			if (!currentVersion.equals(config.getPreviousVersion()))
-			{
-				//clear folder
-			}
-		} catch (IOException e)
-		{
-			throw new RuntimeException(e);
-		}
-
 	}
 
 	private void loadClips()
@@ -181,10 +175,6 @@ public class BossVoiceLinesPlugin extends Plugin
 
 	private boolean downloadQuote(Quote quote)
 	{
-		if (RAW_GITHUB == null)
-		{
-			return false;
-		}
 		if (quote.getFile().getParentFile().mkdirs())
 		{
 			log.debug("mkdirs {}", quote.getFile().getParent());
@@ -219,6 +209,34 @@ public class BossVoiceLinesPlugin extends Plugin
 		}
 	}
 
+	// Checks if the audio version has changed and if so clears the audio file directory
+	private void checkVersion()
+	{
+		HttpUrl inputUrl = RAW_GITHUB.newBuilder().addPathSegment("version.properties").build();
+		try (Response res = okHttpClient.newCall(new Request.Builder().url(inputUrl).build()).execute())
+		{
+			if (!res.isSuccessful() || res.body() == null)
+			{
+				log.error("failed to get version.properties file: {}",  res.body());
+				return;
+			}
+			final Properties properties = new Properties();
+			properties.load(res.body().byteStream());
+			String currentVersion = properties.getProperty("version");
+			if (!currentVersion.equals(config.getPreviousVersion()))
+			{
+				log.debug("New audio versions found. Resetting {}", AUDIO_DIRECTORY);
+				FileUtils.deleteDirectory(new File(AUDIO_DIRECTORY));
+				configManager.setConfiguration(CONFIG_GROUP, VERSION_KEY, currentVersion);
+				return;
+			}
+			log.debug("version:{} Audios are up to date.", config.getPreviousVersion());
+		} catch (IOException e)
+		{
+			log.error("failed to get version.properties file: ", e);
+		}
+	}
+
 	@Subscribe
 	public void onOverheadTextChanged(OverheadTextChanged event)
 	{
@@ -237,7 +255,7 @@ public class BossVoiceLinesPlugin extends Plugin
 	{
 		if (event.getGroup().equals(CONFIG_GROUP))
 		{
-			updateVolumeLevel();
+			loadClips();
 		}
 	}
 

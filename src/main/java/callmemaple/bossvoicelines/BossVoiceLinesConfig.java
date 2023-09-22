@@ -15,6 +15,8 @@ import static callmemaple.bossvoicelines.BossVoiceLinesPlugin.CONFIG_GROUP;
 @ConfigGroup(CONFIG_GROUP)
 public interface BossVoiceLinesConfig extends Config
 {
+    String VERSION_KEY = "version";
+
     @Range(
             max = 200
     )
@@ -46,12 +48,12 @@ public interface BossVoiceLinesConfig extends Config
     }
 
     @ConfigItem(
-            keyName = "version",
+            keyName = VERSION_KEY,
             name = "version",
             description = "Most recent version known of the plugin. The current version defined during build process.",
             hidden = true
     )
     default String getPreviousVersion() {
-        return "";
+        return "1.0";
     }
 }
