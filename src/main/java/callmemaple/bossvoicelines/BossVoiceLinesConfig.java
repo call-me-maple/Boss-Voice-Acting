@@ -16,15 +16,16 @@ import static callmemaple.bossvoicelines.BossVoiceLinesPlugin.CONFIG_GROUP;
 public interface BossVoiceLinesConfig extends Config
 {
     String VERSION_KEY = "version";
+    String VOLUME_KEY = "volume";
+    String ENABLED_BOSSES_KEY = "enabledBosses";
 
     @Range(
-            max = 200,
-            min = 1
+            max = 200
     )
     @ConfigItem(
-            keyName = "volume",
+            keyName = VOLUME_KEY,
             name = "Volume",
-            description = "Adjust how loud the voice lines are. Range 1 to 200",
+            description = "Adjust how loud the voice lines are by boosting or lowering the gain. Range 0 to 200",
             position = 1
     )
     default int getVolume() {
@@ -39,7 +40,7 @@ public interface BossVoiceLinesConfig extends Config
     ) String bosses = "bosses";
 
     @ConfigItem(
-            keyName = "enabledBosses",
+            keyName = ENABLED_BOSSES_KEY,
             name = "Enabled",
             description = "Use ctrl+click to deselect a single one (similar functionality as Window's File Explorer selecting)",
             position = 2,
