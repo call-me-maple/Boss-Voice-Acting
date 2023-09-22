@@ -18,12 +18,13 @@ public interface BossVoiceLinesConfig extends Config
     String VERSION_KEY = "version";
 
     @Range(
-            max = 200
+            max = 200,
+            min = 1
     )
     @ConfigItem(
             keyName = "volume",
             name = "Volume",
-            description = "Adjust how loud the voice lines are. Range 0 to 200",
+            description = "Adjust how loud the voice lines are. Range 1 to 200",
             position = 1
     )
     default int getVolume() {
