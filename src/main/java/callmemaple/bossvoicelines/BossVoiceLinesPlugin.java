@@ -1,15 +1,19 @@
 package callmemaple.bossvoicelines;
 
-import callmemaple.bossvoicelines.data.Boss;
 import callmemaple.bossvoicelines.data.Quote;
+
 import com.google.inject.Provides;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
-import javax.sound.sampled.*;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.FloatControl;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.UnsupportedAudioFileException;
 
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
-import net.runelite.api.events.CommandExecuted;
 import net.runelite.api.events.OverheadTextChanged;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -20,6 +24,7 @@ import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.MediaType;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -29,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import static callmemaple.bossvoicelines.data.Boss.*;
 import static callmemaple.bossvoicelines.data.Quote.findQuote;
@@ -40,6 +46,7 @@ import static callmemaple.bossvoicelines.data.Quote.findQuote;
 public class BossVoiceLinesPlugin extends Plugin
 {
 	private static final HttpUrl RAW_GITHUB = HttpUrl.parse("https://raw.githubusercontent.com/call-me-maple/Boss-Voice-Lines/audio");
+	static final String CONFIG_GROUP = "boss-voice-lines";
 
 	@Inject
 	private Client client;
@@ -51,59 +58,49 @@ public class BossVoiceLinesPlugin extends Plugin
 	private OkHttpClient okHttpClient;
 
 	private final Map<Quote, Clip> audioClips = new HashMap<>();
-	private Clip nowPlaying;
+
+	@Nullable
+	private Clip nowPlaying = null;
 
 	@Override
-	protected void startUp() throws Exception
+	protected void startUp()
 	{
-		log.info("Boss Voice Lines started!");
-		nowPlaying = null;
 		loadClips();
-		updateVolumeLevel();
 	}
 
 	@Override
-	protected void shutDown() throws Exception
+	protected void shutDown()
 	{
 		unloadClips();
-		log.info("Boss Voice Lines stopped!");
 	}
 
-	@Provides
-	BossVoiceLinesConfig provideConfig(ConfigManager configManager)
+	private void checkVersion()
 	{
-		return configManager.getConfig(BossVoiceLinesConfig.class);
-	}
-
-	@Subscribe
-	public void onOverheadTextChanged(OverheadTextChanged event)
-	{
-		String actorName = event.getActor().getName();
-		String line = event.getOverheadText();
-		Quote quote = findQuote(findBoss(actorName), line);
-		if (quote != null)
+		try (InputStream inputStream = BossVoiceLinesPlugin.class.getResourceAsStream("/version.properties"))
 		{
-			if (audioClips.containsKey(quote))
+			final Properties properties = new Properties();
+			properties.load(inputStream);
+			String currentVersion = properties.getProperty("version");
+			if (!currentVersion.equals(config.getPreviousVersion()))
 			{
-				log.debug("playing quote {}: \"{}\", from {}", quote.boss, quote.line, quote.filename);
-				playClip(audioClips.get(quote));
+				//clear folder
 			}
-		}
-	}
-
-	@Subscribe
-	public void onConfigChanged(ConfigChanged event)
-	{
-		if (event.getGroup().equals("bossvoicelines"))
+		} catch (IOException e)
 		{
-			updateVolumeLevel();
+			throw new RuntimeException(e);
 		}
+
 	}
 
 	private void loadClips()
 	{
 		for (Quote quote : Quote.QUOTES)
 		{
+			if (!config.getEnabledBosses().contains(quote.boss))
+			{
+				// continue to the next quote if the boss isn't enabled
+				continue;
+			}
 			if (!quote.getFile().exists())
 			{
 				log.debug("no file found {}", quote.getFile());
@@ -122,6 +119,8 @@ public class BossVoiceLinesPlugin extends Plugin
 				log.debug("Failed to create clip ", e);
 			}
 		}
+
+		updateVolumeLevel();
 	}
 
 	private void loadClip(Quote quote, Clip clip)
@@ -137,6 +136,18 @@ public class BossVoiceLinesPlugin extends Plugin
 		} catch (UnsupportedAudioFileException | IOException | LineUnavailableException e)
 		{
 			log.error("Failed to load quote " + quote.line, e);
+		}
+	}
+
+	private void updateVolumeLevel()
+	{
+		for (Clip clip : audioClips.values())
+		{
+			FloatControl volume = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+			float gain = 20f * (float) Math.log10(config.getVolume() / 100f);
+			gain = Math.min(gain, volume.getMaximum());
+			gain = Math.max(gain, volume.getMinimum());
+			volume.setValue(gain);
 		}
 	}
 
@@ -168,75 +179,71 @@ public class BossVoiceLinesPlugin extends Plugin
 		nowPlaying = null;
 	}
 
-	private void updateVolumeLevel()
-	{
-		for (Clip clip : audioClips.values())
-		{
-			FloatControl volume = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
-			float gain = 20f * (float) Math.log10(config.volume() / 100f);
-			gain = Math.min(gain, volume.getMaximum());
-			gain = Math.max(gain, volume.getMinimum());
-			volume.setValue(gain);
-		}
-	}
-
 	private boolean downloadQuote(Quote quote)
 	{
 		if (RAW_GITHUB == null)
 		{
 			return false;
 		}
-		HttpUrl soundUrl = RAW_GITHUB.newBuilder()
-				.addPathSegment(quote.boss.folderName)
-				.addPathSegment(quote.filename).build();
-
 		if (quote.getFile().getParentFile().mkdirs())
 		{
 			log.debug("mkdirs {}", quote.getFile().getParent());
 		}
 
 		Path outputPath = quote.getFile().toPath();
+		HttpUrl inputUrl = RAW_GITHUB.newBuilder()
+				.addPathSegment(quote.boss.folderName)
+				.addPathSegment(quote.filename).build();
 
-		try (Response res = okHttpClient.newCall(new Request.Builder().url(soundUrl).build()).execute()) {
-			if (res.isSuccessful() && res.body() != null)
+		try (Response res = okHttpClient.newCall(new Request.Builder().url(inputUrl).build()).execute())
+		{
+			if (!res.isSuccessful() || res.body() == null)
 			{
-				Files.copy(new BufferedInputStream(res.body().byteStream()), outputPath, StandardCopyOption.REPLACE_EXISTING);
-				return true;
+				log.error("failed to get audio file: {}",  res.body());
+				return false;
 			}
-			log.error("url:{} response:{}", res.request().url(), res.body().string());
-		} catch (IOException e) {
-			log.error("could not download sounds", e);
+			MediaType contentType = res.body().contentType();
+			if (contentType == null || !contentType.toString().equals("audio/wav"))
+			{
+				log.error("failed to get audio file: Content-Type must be 'audio/wav' not '{}' ", contentType);
+				return false;
+			}
+
+			Files.copy(new BufferedInputStream(res.body().byteStream()), outputPath, StandardCopyOption.REPLACE_EXISTING);
+			return true;
+
+		} catch (IOException e)
+		{
+			log.error("failed to get audio file: ", e);
 			return false;
 		}
-		return false;
 	}
 
 	@Subscribe
-	public void onCommandExecuted(CommandExecuted command)
+	public void onOverheadTextChanged(OverheadTextChanged event)
 	{
-		String[] arguments = command.getArguments();
-
-		if (command.getCommand().equals("vo"))
+		String actorName = event.getActor().getName();
+		String line = event.getOverheadText();
+		Quote quote = findQuote(findBoss(actorName), line);
+		if (quote != null && audioClips.containsKey(quote))
 		{
-			if (arguments.length < 1)
-			{
-				return;
-			}
-			String line = arguments[0].toUpperCase();
-
-			try
-			{
-				Quote quote = Quote.findQuote(Boss.CHAOS_FANATIC, line);
-				if (audioClips.containsKey(quote))
-				{
-					client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Playing voiceover " + line, null);
-					playClip(audioClips.get(quote));
-				}
-			} catch (IllegalArgumentException e)
-			{
-				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Unknown voiceover: " + line, null);
-			}
+			log.debug("playing quote {}: \"{}\", from {}", quote.boss, quote.line, quote.filename);
+			playClip(audioClips.get(quote));
 		}
 	}
-}
 
+	@Subscribe
+	public void onConfigChanged(ConfigChanged event)
+	{
+		if (event.getGroup().equals(CONFIG_GROUP))
+		{
+			updateVolumeLevel();
+		}
+	}
+
+	@Provides
+	BossVoiceLinesConfig provideConfig(ConfigManager configManager)
+	{
+		return configManager.getConfig(BossVoiceLinesConfig.class);
+	}
+}

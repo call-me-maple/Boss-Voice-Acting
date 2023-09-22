@@ -8,10 +8,8 @@ public enum Boss
     KARIL("barrows", "Karil the Tainted"),
     TORAG("barrows", "Torag the Corrupted"),
     VERAC("barrows", "Verac the Defiled"),
-
     CERBERUS("cerberus", "Cerberus"),
     CERB_GHOST("cerberus", "Summoned Soul"),
-
     CHAOS_FANATIC("chaos-fanatic", "Chaos fanatic"),
     COMMANDER_ZILYANA("commander-zilyana", "Commander Zilyana"),
     CHAOS_ARCHAEOLOGIST("crazy-archaeologist", "Crazy archaeologist"),
@@ -36,7 +34,7 @@ public enum Boss
     Boss()
     {
         this.name = "UNKNOWN BOSS NAME";
-        this.folderName ="";
+        this.folderName = "";
     }
 
     public static Boss findBoss(String actorName)
