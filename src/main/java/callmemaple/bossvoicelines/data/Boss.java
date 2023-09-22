@@ -24,7 +24,7 @@ public enum Boss
     KREEARRA("kree'arra", "Kree'arra"),
     NEX("nex", "nex"),
     VETION("vet'ion", "Vet'ion"),
-    CALVARION("vet'ion", "Calvar'ion"); // Shares audio files with Vet'ion
+    CALVARION("vet'ion", "Calvar'ion"); // Calvar'ion shares quotes with Vet'ion, so they use the same audio files to avoid data redundancy
 
     private final String name;
     private final String folderName;
@@ -35,6 +35,9 @@ public enum Boss
         this.folderName = folderName;
     }
 
+    /**
+     * 	Search for the Boss based on the actor's name ignoring case
+     */
     @Nullable
     public static Boss findBoss(String actorName)
     {

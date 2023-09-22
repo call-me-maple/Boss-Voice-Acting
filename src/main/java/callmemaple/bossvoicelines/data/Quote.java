@@ -58,7 +58,7 @@ public class Quote
             new Quote(KREEARRA, "Kraaaw!", "Kraaaw.wav"),
 
             new Quote(NEX, "AT LAST!", "AtLast.wav"),
-            new Quote(NEX, "Fumus!", "Minions.wav"), //reading them all out
+            new Quote(NEX, "Fumus!", "Minions.wav"), // This file reads out all the minion's names starting with Fumus
             new Quote(NEX, "I demand a blood sacrifice!", "BloodSacrifice.wav"),
             new Quote(NEX, "Contain this!", "ContainThis.wav"),
             new Quote(NEX, "Cruor, don't fail me!", "CruorFail.wav"),
@@ -179,12 +179,18 @@ public class Quote
         this.filename = filename;
     }
 
+    /**
+     * 	Return the location of the Quote's audio file as a File object
+     */
     public File getFile()
     {
         String path = String.join(File.separator, AUDIO_DIRECTORY, boss.getFolderName(), filename);
         return new File(path);
     }
 
+    /**
+     * 	Search for the Quote based on the boss and their line
+     */
     @Nullable
     public static Quote findQuote(Boss boss, String line)
     {

@@ -68,7 +68,10 @@ public class BossVoiceLinesPlugin extends Plugin
 	@Inject
 	private OkHttpClient okHttpClient;
 
-	private final Map<Quote, Clip> audioClips = new HashMap<>();
+	/**
+	 * Used to store, play, and adjust the loaded audio Clips
+	 */
+	private final Map<Quote, Clip> loadedClips = new HashMap<>();
 
 	@Nullable
 	private Clip nowPlaying = null;
@@ -86,6 +89,9 @@ public class BossVoiceLinesPlugin extends Plugin
 		unloadClips();
 	}
 
+	/**
+	 * 	Try to create and load each audio Clip updating the volumes at the end
+	 */
 	private void loadClips()
 	{
 		for (Quote quote : Quote.QUOTES)
@@ -98,6 +104,7 @@ public class BossVoiceLinesPlugin extends Plugin
 			if (!quote.getFile().exists())
 			{
 				log.debug("no file found {}", quote.getFile());
+				// Attempt to download the audio file
 				if (!downloadQuote(quote))
 				{
 					// continue to the next quote if it can't be downloaded
@@ -110,21 +117,25 @@ public class BossVoiceLinesPlugin extends Plugin
 				loadClip(quote, newClip);
 			} catch (LineUnavailableException e)
 			{
-				log.debug("Failed to create clip ", e);
+				log.error("Failed to create clip ", e);
 			}
 		}
-
 		updateVolumeLevel();
 	}
 
+	/**
+	 * 	Attempt to open and store the passed audio Clip
+	 */
 	private void loadClip(Quote quote, Clip clip)
 	{
+		// Try to open the file
 		try (InputStream fileStream = new BufferedInputStream(Files.newInputStream(quote.getFile().toPath())))
 		{
+			// Using an audio stream try to open the audio Clip and allocate the needed system resources
 			try (AudioInputStream audioStream = AudioSystem.getAudioInputStream(fileStream))
 			{
 				clip.open(audioStream);
-				audioClips.put(quote, clip);
+				loadedClips.put(quote, clip);
 				log.debug("loaded clip {} from file {}", quote.getLine(), quote.getFile());
 			}
 		} catch (UnsupportedAudioFileException | IOException | LineUnavailableException e)
@@ -133,9 +144,13 @@ public class BossVoiceLinesPlugin extends Plugin
 		}
 	}
 
+	/**
+	 * 	Update each Clip's master gain control based on the current volume config by
+	 * 	converting the config value into a logarithmic decibel scale and setting the new gain adjustment
+	 */
 	private void updateVolumeLevel()
 	{
-		for (Clip clip : audioClips.values())
+		for (Clip clip : loadedClips.values())
 		{
 			FloatControl volume = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
 			float gain = 20f * (float) Math.log10(config.getVolume() / 100f);
@@ -145,16 +160,25 @@ public class BossVoiceLinesPlugin extends Plugin
 		}
 	}
 
+	/**
+	 * 	Stop and close all loaded audio Clips releasing the system resources
+	 */
 	private void unloadClips()
 	{
-		for (Clip clip : audioClips.values())
+		for (Clip clip : loadedClips.values())
 		{
 			clip.stop();
 			clip.close();
 		}
-		audioClips.clear();
+		loadedClips.clear();
 	}
 
+	/**
+	 * 	Start playing the passed in audio Clip
+	 * 	This interrupts any now playing audio Clip before to avoid multiple Clips playing together
+	 * 	(will try update the audio clip timings to avoid this behavior ideally
+	 * 	or maybe allow multiple Clips to play together for specific bosses like Cerberus)
+	 */
 	private void playClip(Clip clip)
 	{
 		if (nowPlaying != null && nowPlaying.isActive())
@@ -163,16 +187,25 @@ public class BossVoiceLinesPlugin extends Plugin
 			stopClip(nowPlaying);
 		}
 		nowPlaying = clip;
+		// From net.runelite.client.Notifier
+		// Using loop instead of start prevents the clip from not being played sometimes
+		// presumably a race condition in the underlying line driver
 		clip.setFramePosition(0);
 		clip.loop(0);
 	}
 
+	/**
+	 * 	Stop the audio Clip passed in from playing
+	 */
 	private void stopClip(Clip clip)
 	{
 		clip.stop();
 		nowPlaying = null;
 	}
 
+	/**
+	 * 	Attempt to download the corresponding audio file for the passed in Quote
+	 */
 	private boolean downloadQuote(Quote quote)
 	{
 		if (quote.getFile().getParentFile().mkdirs())
@@ -180,6 +213,7 @@ public class BossVoiceLinesPlugin extends Plugin
 			log.debug("mkdirs {}", quote.getFile().getParent());
 		}
 
+		// Define the output path and the url source of the file
 		Path outputPath = quote.getFile().toPath();
 		HttpUrl inputUrl = RAW_GITHUB.newBuilder()
 				.addPathSegment(quote.getBoss().getFolderName())
@@ -192,6 +226,8 @@ public class BossVoiceLinesPlugin extends Plugin
 				log.error("failed to get audio file: {}",  res.body());
 				return false;
 			}
+
+			// Checks the Content-Type to verify only "audio/wav" are downloaded
 			MediaType contentType = res.body().contentType();
 			if (contentType == null || !contentType.toString().equals("audio/wav"))
 			{
@@ -199,7 +235,9 @@ public class BossVoiceLinesPlugin extends Plugin
 				return false;
 			}
 
+			// Copy the response body to the output location
 			Files.copy(new BufferedInputStream(res.body().byteStream()), outputPath, StandardCopyOption.REPLACE_EXISTING);
+			log.debug("downloaded audio file {}: \"{}\", saved at {}", quote.getBoss(), quote.getLine(), outputPath);
 			return true;
 
 		} catch (IOException e)
@@ -209,7 +247,9 @@ public class BossVoiceLinesPlugin extends Plugin
 		}
 	}
 
-	// Checks if the audio version has changed and if so clears the audio file directory
+	/**
+	 * 	Checks if the audio files versions have changed and if so remove the old versions
+	 */
 	private void checkVersion()
 	{
 		HttpUrl inputUrl = RAW_GITHUB.newBuilder().addPathSegment("version.properties").build();
@@ -220,9 +260,13 @@ public class BossVoiceLinesPlugin extends Plugin
 				log.error("failed to get version.properties file: {}",  res.body());
 				return;
 			}
+
+			// Load the fetched version.properties and read the current version
 			final Properties properties = new Properties();
 			properties.load(res.body().byteStream());
 			String currentVersion = properties.getProperty("version");
+
+			// Remove old files and update the version config when the versions don't match
 			if (!currentVersion.equals(config.getPreviousVersion()))
 			{
 				log.debug("New audio versions found. Resetting {}", AUDIO_DIRECTORY);
@@ -230,23 +274,29 @@ public class BossVoiceLinesPlugin extends Plugin
 				configManager.setConfiguration(CONFIG_GROUP, VERSION_KEY, currentVersion);
 				return;
 			}
-			log.debug("version:{} Audios are up to date.", config.getPreviousVersion());
+			log.debug("version:{} Audio files are up to date.", config.getPreviousVersion());
 		} catch (IOException e)
 		{
 			log.error("failed to get version.properties file: ", e);
 		}
 	}
 
+	/**
+	 * 	Whenever an enabled boss 'says' a Quote then play the corresponding audio Clip
+	 */
 	@Subscribe
 	public void onOverheadTextChanged(OverheadTextChanged event)
 	{
+		// Search for the Boss and their Quote based on the event's actor and overhead text
 		String actorName = event.getActor().getName();
 		String line = event.getOverheadText();
 		Quote quote = findQuote(findBoss(actorName), line);
-		if (quote != null && audioClips.containsKey(quote))
+
+		// Play the Clip if it is loaded
+		if (quote != null && loadedClips.containsKey(quote))
 		{
 			log.debug("playing quote {}: \"{}\", from {}", quote.getBoss(), quote.getLine(), quote.getFilename());
-			playClip(audioClips.get(quote));
+			playClip(loadedClips.get(quote));
 		}
 	}
 
