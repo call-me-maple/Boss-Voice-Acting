@@ -54,7 +54,7 @@ public class BossVoiceLinesPlugin extends Plugin
 	@NonNull
 	private static final HttpUrl RAW_GITHUB = Objects.requireNonNull(HttpUrl.parse("https://raw.githubusercontent.com/call-me-maple/Boss-Voice-Lines/audio"));
 	public static final String CONFIG_GROUP = "boss-voice-lines";
-	public static final String AUDIO_DIRECTORY = String.join(File.separator, RuneLite.RUNELITE_DIR.getPath(), "boss-voice-lines");
+	public static final String AUDIO_DIRECTORY = String.join(File.separator, RuneLite.RUNELITE_DIR.getPath(), "boss-voice-lines", "audio-cache-dont-use");
 
 	@Inject
 	private Client client;

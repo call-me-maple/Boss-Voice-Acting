@@ -32,22 +32,3 @@ sourceCompatibility = '1.8'
 tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
 }
-
-task createProperties(dependsOn: processResources) {
-	doLast {
-		new File("$rootDir/src/main/resources/version.properties").withWriter { w ->
-			Properties resourceProps = new Properties()
-			resourceProps['version'] = project.version.toString()
-			resourceProps.store w, null
-		}
-		new File("$buildDir/resources/main/version.properties").withWriter { w ->
-			Properties p = new Properties()
-			p['version'] = project.version.toString()
-			p.store w, null
-		}
-	}
-}
-
-classes {
-	dependsOn createProperties
-}
