@@ -41,7 +41,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 
-import static callmemaple.bossvoicelines.BossVoiceLinesConfig.VERSION_KEY;
+import static callmemaple.bossvoicelines.BossVoiceLinesConfig.*;
 import static callmemaple.bossvoicelines.data.Boss.*;
 import static callmemaple.bossvoicelines.data.Quote.findQuote;
 
@@ -253,8 +253,17 @@ public class BossVoiceLinesPlugin extends Plugin
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
 	{
-		if (event.getGroup().equals(CONFIG_GROUP))
+		if (!event.getGroup().equals(CONFIG_GROUP))
 		{
+			return;
+		}
+		if (VOLUME_KEY.equals(event.getKey()))
+		{
+			updateVolumeLevel();
+		}
+		if (ENABLED_BOSSES_KEY.equals(event.getKey()))
+		{
+			unloadClips();
 			loadClips();
 		}
 	}
