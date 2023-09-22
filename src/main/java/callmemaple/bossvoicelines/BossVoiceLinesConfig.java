@@ -41,7 +41,7 @@ public interface BossVoiceLinesConfig extends Config
     @ConfigItem(
             keyName = "enabledBosses",
             name = "Enabled",
-            description = "Use ctrl+click to deselect a single one (same functionality as Window's File Explorer selecting)",
+            description = "Use ctrl+click to deselect a single one (similar functionality as Window's File Explorer selecting)",
             position = 2,
             section = bosses
     ) default Set<Boss> getEnabledBosses() {

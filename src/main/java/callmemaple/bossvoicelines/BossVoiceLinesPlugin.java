@@ -90,7 +90,7 @@ public class BossVoiceLinesPlugin extends Plugin
 	{
 		for (Quote quote : Quote.QUOTES)
 		{
-			if (!config.getEnabledBosses().contains(quote.boss))
+			if (!config.getEnabledBosses().contains(quote.getBoss()))
 			{
 				// continue to the next quote if the boss isn't enabled
 				continue;
@@ -125,11 +125,11 @@ public class BossVoiceLinesPlugin extends Plugin
 			{
 				clip.open(audioStream);
 				audioClips.put(quote, clip);
-				log.debug("loaded clip {} from file {}", quote.line, quote.getFile());
+				log.debug("loaded clip {} from file {}", quote.getLine(), quote.getFile());
 			}
 		} catch (UnsupportedAudioFileException | IOException | LineUnavailableException e)
 		{
-			log.error("Failed to load quote " + quote.line, e);
+			log.error("Failed to load quote " + quote.getLine(), e);
 		}
 	}
 
@@ -182,8 +182,8 @@ public class BossVoiceLinesPlugin extends Plugin
 
 		Path outputPath = quote.getFile().toPath();
 		HttpUrl inputUrl = RAW_GITHUB.newBuilder()
-				.addPathSegment(quote.boss.folderName)
-				.addPathSegment(quote.filename).build();
+				.addPathSegment(quote.getBoss().getFolderName())
+				.addPathSegment(quote.getFilename()).build();
 
 		try (Response res = okHttpClient.newCall(new Request.Builder().url(inputUrl).build()).execute())
 		{
@@ -245,7 +245,7 @@ public class BossVoiceLinesPlugin extends Plugin
 		Quote quote = findQuote(findBoss(actorName), line);
 		if (quote != null && audioClips.containsKey(quote))
 		{
-			log.debug("playing quote {}: \"{}\", from {}", quote.boss, quote.line, quote.filename);
+			log.debug("playing quote {}: \"{}\", from {}", quote.getBoss(), quote.getLine(), quote.getFilename());
 			playClip(audioClips.get(quote));
 		}
 	}

@@ -1,22 +1,24 @@
 package callmemaple.bossvoicelines.data;
 
 import com.google.common.collect.ImmutableSet;
-import net.runelite.client.RuneLite;
+import lombok.Getter;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.util.Set;
 
 import static callmemaple.bossvoicelines.BossVoiceLinesPlugin.AUDIO_DIRECTORY;
 import static callmemaple.bossvoicelines.data.Boss.*;
 
+@Getter
 public class Quote
 {
     public static final Set<Quote> QUOTES = ImmutableSet.of(
             new Quote(CERBERUS, "Grrrrrrrrrrrrrr", "Growl.wav"),
             new Quote(CERBERUS, "Aaarrrooooooo", "Arooo.wav"),
-            new Quote(CERB_GHOST, "I obey.", "SoulIObey.wav"),
-            new Quote(CERB_GHOST, "Join us.", "SoulJoinUs.wav"),
-            new Quote(CERB_GHOST, "Steal your soul.", "SoulStealYourSoul.wav"),
+            new Quote(CERBERUS_GHOSTS, "I obey.", "SoulIObey.wav"),
+            new Quote(CERBERUS_GHOSTS, "Join us.", "SoulJoinUs.wav"),
+            new Quote(CERBERUS_GHOSTS, "Steal your soul.", "SoulStealYourSoul.wav"),
 
             new Quote(COMMANDER_ZILYANA, "All praise Saradomin!", "AllPraise.wav"),
             new Quote(COMMANDER_ZILYANA, "Death to the enemies of the light!", "DeathLight.wav"),
@@ -166,10 +168,9 @@ public class Quote
             new Quote(VETION, "I'll get you... next... time...", "NextTime.wav")
     );
 
-
-    public Boss boss;
-    public String line;
-    public String filename;
+    private final Boss boss;
+    private final String line;
+    private final String filename;
 
     public Quote(Boss boss, String line, String filename)
     {
@@ -180,13 +181,14 @@ public class Quote
 
     public File getFile()
     {
-        String path = String.join(File.separator, AUDIO_DIRECTORY, boss.folderName, filename);
+        String path = String.join(File.separator, AUDIO_DIRECTORY, boss.getFolderName(), filename);
         return new File(path);
     }
 
+    @Nullable
     public static Quote findQuote(Boss boss, String line)
     {
-        if (boss == UNKNOWN)
+        if (boss == null)
         {
             return null;
         }

@@ -1,5 +1,10 @@
 package callmemaple.bossvoicelines.data;
 
+import lombok.Getter;
+
+import javax.annotation.Nullable;
+
+@Getter
 public enum Boss
 {
     AHRIM("barrows", "Ahrim the Blighted"),
@@ -9,7 +14,7 @@ public enum Boss
     TORAG("barrows", "Torag the Corrupted"),
     VERAC("barrows", "Verac the Defiled"),
     CERBERUS("cerberus", "Cerberus"),
-    CERB_GHOST("cerberus", "Summoned Soul"),
+    CERBERUS_GHOSTS("cerberus", "Summoned Soul"),
     CHAOS_FANATIC("chaos-fanatic", "Chaos fanatic"),
     COMMANDER_ZILYANA("commander-zilyana", "Commander Zilyana"),
     CHAOS_ARCHAEOLOGIST("crazy-archaeologist", "Crazy archaeologist"),
@@ -19,11 +24,10 @@ public enum Boss
     KREEARRA("kree'arra", "Kree'arra"),
     NEX("nex", "nex"),
     VETION("vet'ion", "Vet'ion"),
-    CALVARION("vet'ion", "Calvar'ion"), // Shares audio files with Vet'ion
-    UNKNOWN;
+    CALVARION("vet'ion", "Calvar'ion"); // Shares audio files with Vet'ion
 
-    public final String name;
-    public final String folderName;
+    private final String name;
+    private final String folderName;
 
     Boss(String folderName, String name)
     {
@@ -31,12 +35,7 @@ public enum Boss
         this.folderName = folderName;
     }
 
-    Boss()
-    {
-        this.name = "UNKNOWN BOSS NAME";
-        this.folderName = "";
-    }
-
+    @Nullable
     public static Boss findBoss(String actorName)
     {
         for (Boss boss: values())
@@ -46,6 +45,6 @@ public enum Boss
                 return boss;
             }
         }
-        return UNKNOWN;
+        return null;
     }
 }
