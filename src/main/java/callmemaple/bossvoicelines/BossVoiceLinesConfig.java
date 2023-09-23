@@ -25,7 +25,7 @@ public interface BossVoiceLinesConfig extends Config
             position = 1
     )
     default int getVolume() {
-        return 100;
+        return 175; // Setting the default volume higher for now as clips are too quiet across the board
     }
 
     @ConfigSection(
