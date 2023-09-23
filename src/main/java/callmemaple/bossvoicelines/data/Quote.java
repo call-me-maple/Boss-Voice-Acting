@@ -205,7 +205,7 @@ public class Quote
 
         for (Quote quote : QUOTES)
         {
-            if (quote.boss.equals(boss) && quote.line.equalsIgnoreCase(line))
+            if (quote.boss.equals(boss) && quote.line.equals(line))
             {
                 return quote;
             }
