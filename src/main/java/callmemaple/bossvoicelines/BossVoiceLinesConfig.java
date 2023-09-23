@@ -1,6 +1,7 @@
 package callmemaple.bossvoicelines;
 
 import callmemaple.bossvoicelines.data.Boss;
+
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
@@ -10,18 +11,13 @@ import net.runelite.client.config.Range;
 import java.util.EnumSet;
 import java.util.Set;
 
-import static callmemaple.bossvoicelines.BossVoiceLinesPlugin.CONFIG_GROUP;
-
-@ConfigGroup(CONFIG_GROUP)
+@ConfigGroup(BossVoiceLinesConfig.CONFIG_GROUP)
 public interface BossVoiceLinesConfig extends Config
 {
-    String VERSION_KEY = "version";
-    String VOLUME_KEY = "volume";
-    String ENABLED_BOSSES_KEY = "enabledBosses";
+    String CONFIG_GROUP = "boss-voice-lines";
 
-    @Range(
-            max = 200
-    )
+    String VOLUME_KEY = "volume";
+    @Range(max = 200)
     @ConfigItem(
             keyName = VOLUME_KEY,
             name = "Volume",
@@ -39,6 +35,7 @@ public interface BossVoiceLinesConfig extends Config
             closedByDefault = true
     ) String bosses = "bosses";
 
+    String ENABLED_BOSSES_KEY = "enabledBosses";
     @ConfigItem(
             keyName = ENABLED_BOSSES_KEY,
             name = "Enabled",
@@ -49,13 +46,22 @@ public interface BossVoiceLinesConfig extends Config
         return EnumSet.allOf(Boss.class);
     }
 
+    String VERSION_KEY = "version";
     @ConfigItem(
             keyName = VERSION_KEY,
             name = "version",
-            description = "Most recent version known of the plugin. The current version defined during build process.",
+            description = "Get the most recently seen version of the audio files",
             hidden = true
     )
     default String getPreviousVersion() {
         return "1.0";
     }
+
+    @ConfigItem(
+            keyName = VERSION_KEY,
+            name = "version",
+            description = "Set the most recently seen version of the audio files",
+            hidden = true
+    )
+    void setPreviousVersion(String version);
 }

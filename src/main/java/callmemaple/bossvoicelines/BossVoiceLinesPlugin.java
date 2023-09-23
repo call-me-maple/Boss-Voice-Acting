@@ -15,14 +15,13 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 import org.apache.commons.io.FileUtils;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Client;
-import net.runelite.api.events.OverheadTextChanged;
 import net.runelite.client.RuneLite;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.api.events.OverheadTextChanged;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -41,32 +40,29 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 
-import static callmemaple.bossvoicelines.BossVoiceLinesConfig.*;
 import static callmemaple.bossvoicelines.data.Boss.*;
 import static callmemaple.bossvoicelines.data.Quote.findQuote;
 
 @Slf4j
 @PluginDescriptor(
-	name = "Boss Voice Lines"
+	name = "Boss Voice Lines",
+	description = "adds audio voice lines for various bosses' overhead text",
+	tags = {"boss","bossing","voice","acting"}
 )
 public class BossVoiceLinesPlugin extends Plugin
 {
 	@NonNull
 	private static final HttpUrl RAW_GITHUB = Objects.requireNonNull(HttpUrl.parse("https://raw.githubusercontent.com/call-me-maple/Boss-Voice-Lines/audio"));
-	public static final String CONFIG_GROUP = "boss-voice-lines";
 	public static final String AUDIO_DIRECTORY = String.join(File.separator, RuneLite.RUNELITE_DIR.getPath(), "boss-voice-lines", "audio-cache-dont-use");
-
-	@Inject
-	private Client client;
 
 	@Inject
 	private ConfigManager configManager;
 
 	@Inject
-	private BossVoiceLinesConfig config;
+	private OkHttpClient okHttpClient;
 
 	@Inject
-	private OkHttpClient okHttpClient;
+	private BossVoiceLinesConfig config;
 
 	/**
 	 * Used to store, play, and adjust the loaded audio Clips
@@ -269,9 +265,9 @@ public class BossVoiceLinesPlugin extends Plugin
 			// Remove old files and update the version config when the versions don't match
 			if (!currentVersion.equals(config.getPreviousVersion()))
 			{
-				log.debug("New audio versions found. Resetting {}", AUDIO_DIRECTORY);
+				log.debug("New audio version {} found. Resetting {}", currentVersion, AUDIO_DIRECTORY);
 				FileUtils.deleteDirectory(new File(AUDIO_DIRECTORY));
-				configManager.setConfiguration(CONFIG_GROUP, VERSION_KEY, currentVersion);
+				config.setPreviousVersion(currentVersion);
 				return;
 			}
 			log.debug("version:{} Audio files are up to date.", config.getPreviousVersion());
@@ -303,15 +299,15 @@ public class BossVoiceLinesPlugin extends Plugin
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
 	{
-		if (!event.getGroup().equals(CONFIG_GROUP))
+		if (!event.getGroup().equals(BossVoiceLinesConfig.CONFIG_GROUP))
 		{
 			return;
 		}
-		if (VOLUME_KEY.equals(event.getKey()))
+		if (BossVoiceLinesConfig.VOLUME_KEY.equals(event.getKey()))
 		{
 			updateVolumeLevel();
 		}
-		if (ENABLED_BOSSES_KEY.equals(event.getKey()))
+		if (BossVoiceLinesConfig.ENABLED_BOSSES_KEY.equals(event.getKey()))
 		{
 			unloadClips();
 			loadClips();
