@@ -54,7 +54,7 @@ public class Quote
             new Quote(KRIL_TSUTSAROTH, "No retreat!", "NoRetreat.wav"),
             new Quote(KRIL_TSUTSAROTH, "YARRRRRRR!", "YARRRR.wav"),
 
-            new Quote(KREEARRA, "Skreeee!", "Skreeee.wav"),
+            new Quote(KREEARRA, "Skreeeee!", "Skreeee.wav"),
             new Quote(KREEARRA, "Kraaaw!", "Kraaaw.wav"),
 
             new Quote(NEX, "AT LAST!", "AtLast.wav"),
@@ -86,6 +86,10 @@ public class Quote
             new Quote(GUTHAN, "You dare steal from us!", "GUSteal.wav"),
             new Quote(KARIL, "You dare disturb my rest!", "KARest.wav"),
             new Quote(KARIL, "You dare steal from us!", "KASteal.wav"),
+            new Quote(TORAG, "You dare disturb my rest!", "TORest.wav"),
+            new Quote(TORAG, "You dare steal from us!", "TORSteal.wav"),
+            new Quote(VERAC, "You dare disturb my rest!", "VERest.wav"),
+            new Quote(VERAC, "You dare steal from us!", "VESteal.wav"),
 
             new Quote(CHAOS_FANATIC, "BURN!", "Burn.wav"),
             new Quote(CHAOS_FANATIC, "WEUGH!", "Weugh!.wav"),

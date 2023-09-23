@@ -287,6 +287,7 @@ public class BossVoiceLinesPlugin extends Plugin
 		String actorName = event.getActor().getName();
 		String line = event.getOverheadText();
 		Quote quote = findQuote(findBoss(actorName), line);
+		log.debug("actor:{} line:{}",event.getActor(), event.getOverheadText());
 
 		// Play the Clip if it is loaded
 		if (quote != null && loadedClips.containsKey(quote))
