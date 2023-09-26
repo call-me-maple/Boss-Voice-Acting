@@ -1,4 +1,4 @@
-package callmemaple.bossvoicelines.data;
+package callmemaple.bossvoiceacting.data;
 
 import com.google.common.collect.ImmutableSet;
 import lombok.Getter;
@@ -7,8 +7,8 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.util.Set;
 
-import static callmemaple.bossvoicelines.BossVoiceLinesPlugin.AUDIO_DIRECTORY;
-import static callmemaple.bossvoicelines.data.Boss.*;
+import static callmemaple.bossvoiceacting.BossVoiceActingPlugin.AUDIO_DIRECTORY;
+import static callmemaple.bossvoiceacting.data.Boss.*;
 
 @Getter
 public class Quote

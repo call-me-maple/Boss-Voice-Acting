@@ -1,6 +1,6 @@
-package callmemaple.bossvoicelines;
+package callmemaple.bossvoiceacting;
 
-import callmemaple.bossvoicelines.data.Quote;
+import callmemaple.bossvoiceacting.data.Quote;
 
 import com.google.inject.Provides;
 import javax.annotation.Nullable;
@@ -40,20 +40,20 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 
-import static callmemaple.bossvoicelines.data.Boss.*;
-import static callmemaple.bossvoicelines.data.Quote.findQuote;
+import static callmemaple.bossvoiceacting.data.Boss.*;
+import static callmemaple.bossvoiceacting.data.Quote.findQuote;
 
 @Slf4j
 @PluginDescriptor(
-	name = "Boss Voice Lines",
+	name = "Boss Voice Acting",
 	description = "adds audio voice lines for various bosses' overhead text",
 	tags = {"boss","bossing","voice","acting"}
 )
-public class BossVoiceLinesPlugin extends Plugin
+public class BossVoiceActingPlugin extends Plugin
 {
 	@NonNull
-	private static final HttpUrl RAW_GITHUB = Objects.requireNonNull(HttpUrl.parse("https://raw.githubusercontent.com/call-me-maple/Boss-Voice-Lines/audio"));
-	public static final String AUDIO_DIRECTORY = String.join(File.separator, RuneLite.RUNELITE_DIR.getPath(), "boss-voice-lines", "audio-cache-dont-use");
+	private static final HttpUrl RAW_GITHUB = Objects.requireNonNull(HttpUrl.parse("https://raw.githubusercontent.com/call-me-maple/Boss-Voice-Acting/audio"));
+	public static final String AUDIO_DIRECTORY = String.join(File.separator, RuneLite.RUNELITE_DIR.getPath(), "boss-voice-acting", "audio-cache-dont-use");
 
 	@Inject
 	private ConfigManager configManager;
@@ -62,7 +62,7 @@ public class BossVoiceLinesPlugin extends Plugin
 	private OkHttpClient okHttpClient;
 
 	@Inject
-	private BossVoiceLinesConfig config;
+	private BossVoiceActingConfig config;
 
 	/**
 	 * Used to store, play, and adjust the loaded audio Clips
@@ -300,15 +300,15 @@ public class BossVoiceLinesPlugin extends Plugin
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
 	{
-		if (!event.getGroup().equals(BossVoiceLinesConfig.CONFIG_GROUP))
+		if (!event.getGroup().equals(BossVoiceActingConfig.CONFIG_GROUP))
 		{
 			return;
 		}
-		if (BossVoiceLinesConfig.VOLUME_KEY.equals(event.getKey()))
+		if (BossVoiceActingConfig.VOLUME_KEY.equals(event.getKey()))
 		{
 			updateVolumeLevel();
 		}
-		if (BossVoiceLinesConfig.ENABLED_BOSSES_KEY.equals(event.getKey()))
+		if (BossVoiceActingConfig.ENABLED_BOSSES_KEY.equals(event.getKey()))
 		{
 			unloadClips();
 			loadClips();
@@ -316,8 +316,8 @@ public class BossVoiceLinesPlugin extends Plugin
 	}
 
 	@Provides
-	BossVoiceLinesConfig provideConfig(ConfigManager configManager)
+	BossVoiceActingConfig provideConfig(ConfigManager configManager)
 	{
-		return configManager.getConfig(BossVoiceLinesConfig.class);
+		return configManager.getConfig(BossVoiceActingConfig.class);
 	}
 }

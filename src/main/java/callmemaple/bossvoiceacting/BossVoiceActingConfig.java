@@ -1,6 +1,6 @@
-package callmemaple.bossvoicelines;
+package callmemaple.bossvoiceacting;
 
-import callmemaple.bossvoicelines.data.Boss;
+import callmemaple.bossvoiceacting.data.Boss;
 
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
@@ -11,10 +11,10 @@ import net.runelite.client.config.Range;
 import java.util.EnumSet;
 import java.util.Set;
 
-@ConfigGroup(BossVoiceLinesConfig.CONFIG_GROUP)
-public interface BossVoiceLinesConfig extends Config
+@ConfigGroup(BossVoiceActingConfig.CONFIG_GROUP)
+public interface BossVoiceActingConfig extends Config
 {
-    String CONFIG_GROUP = "boss-voice-lines";
+    String CONFIG_GROUP = "boss-voice-acting";
 
     String VOLUME_KEY = "volume";
     @Range(max = 200)

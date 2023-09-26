@@ -1,4 +1,4 @@
-package callmemaple.bossvoicelines.data;
+package callmemaple.bossvoiceacting.data;
 
 import lombok.Getter;
 

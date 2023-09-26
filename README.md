@@ -1,4 +1,4 @@
-# Boss Voice Lines
+# Boss Voice Acting
 adds audio voice lines for various bosses' overhead text
 
 ## Settings
@@ -19,4 +19,4 @@ Use select and deselect which bosses' voice line should be played.
 > - holding ctrl: Will preserve the other boss values
 > - holding shift: Will select or deselect all bosses between two clicks changing to the value of the first
 
-https://github.com/call-me-maple/Boss-Voice-Lines/assets/85463994/9a4cae7a-aa9e-4e43-94d4-8be264dd0c26
+https://github.com/call-me-maple/Boss-Voice-Acting/assets/85463994/9a4cae7a-aa9e-4e43-94d4-8be264dd0c26
