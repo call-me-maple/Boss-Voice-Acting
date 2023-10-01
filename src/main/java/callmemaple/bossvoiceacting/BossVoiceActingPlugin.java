@@ -1,5 +1,6 @@
 package callmemaple.bossvoiceacting;
 
+import callmemaple.bossvoiceacting.data.Boss;
 import callmemaple.bossvoiceacting.data.Quote;
 
 import com.google.inject.Provides;
@@ -12,6 +13,12 @@ import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.apache.commons.io.FileUtils;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -22,11 +29,6 @@ import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.api.events.OverheadTextChanged;
-import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.MediaType;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -76,61 +78,57 @@ public class BossVoiceActingPlugin extends Plugin
 	protected void startUp()
 	{
 		checkVersion();
-		loadClips();
+		loadQuotes();
 	}
 
 	@Override
 	protected void shutDown()
 	{
-		unloadClips();
+		unloadQuotes();
 	}
 
 	/**
 	 * 	Try to create and load each audio Clip updating the volumes at the end
 	 */
-	private void loadClips()
+	private void loadQuotes()
 	{
 		for (Quote quote : Quote.QUOTES)
 		{
 			if (!config.getEnabledBosses().contains(quote.getBoss()))
 			{
-				// continue to the next quote if the boss isn't enabled
+				// continue to the next Quote if the boss isn't enabled
 				continue;
 			}
 			if (!quote.getFile().exists())
 			{
 				log.debug("no file found {}", quote.getFile());
-				// Attempt to download the audio file
-				if (!downloadQuote(quote))
+				// Create any missing directories
+				if (quote.getFile().getParentFile().mkdirs())
 				{
-					// continue to the next quote if it can't be downloaded
-					continue;
+					log.debug("mkdirs {}", quote.getFile().getParent());
 				}
+				downloadQuote(quote);
+				// continue to the next Quote will this one is downloading
+				continue;
 			}
-			try
-			{
-				Clip newClip = AudioSystem.getClip();
-				loadClip(quote, newClip);
-			} catch (LineUnavailableException e)
-			{
-				log.error("Failed to create clip ", e);
-			}
+			loadQuote(quote);
 		}
-		updateVolumeLevel();
 	}
 
 	/**
-	 * 	Attempt to open and store the passed audio Clip
+	 * 	Attempt to open and store the audio file of the Quote
 	 */
-	private void loadClip(Quote quote, Clip clip)
+	private void loadQuote(Quote quote)
 	{
 		// Try to open the file
 		try (InputStream fileStream = new BufferedInputStream(Files.newInputStream(quote.getFile().toPath())))
 		{
+			Clip clip = AudioSystem.getClip();
 			// Using an audio stream try to open the audio Clip and allocate the needed system resources
 			try (AudioInputStream audioStream = AudioSystem.getAudioInputStream(fileStream))
 			{
 				clip.open(audioStream);
+				updateVolumeLevel(clip);
 				loadedClips.put(quote, clip);
 				log.debug("loaded clip {} from file {}", quote.getLine(), quote.getFile());
 			}
@@ -141,25 +139,9 @@ public class BossVoiceActingPlugin extends Plugin
 	}
 
 	/**
-	 * 	Update each Clip's master gain control based on the current volume config by
-	 * 	converting the config value into a logarithmic decibel scale and setting the new gain adjustment
-	 */
-	private void updateVolumeLevel()
-	{
-		for (Clip clip : loadedClips.values())
-		{
-			FloatControl volume = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
-			float gain = 20f * (float) Math.log10(config.getVolume() / 100f);
-			gain = Math.min(gain, volume.getMaximum());
-			gain = Math.max(gain, volume.getMinimum());
-			volume.setValue(gain);
-		}
-	}
-
-	/**
 	 * 	Stop and close all loaded audio Clips releasing the system resources
 	 */
-	private void unloadClips()
+	private void unloadQuotes()
 	{
 		for (Clip clip : loadedClips.values())
 		{
@@ -167,6 +149,19 @@ public class BossVoiceActingPlugin extends Plugin
 			clip.close();
 		}
 		loadedClips.clear();
+	}
+
+	/**
+	 * 	Update the passed Clip's master gain control based on the current volume config by
+	 * 	converting the config value into a logarithmic decibel scale and setting the new gain adjustment
+	 */
+	private void updateVolumeLevel(Clip clip)
+	{
+		FloatControl volume = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+		float gain = 20f * (float) Math.log10(config.getVolume() / 100f);
+		gain = Math.min(gain, volume.getMaximum());
+		gain = Math.max(gain, volume.getMinimum());
+		volume.setValue(gain);
 	}
 
 	/**
@@ -202,45 +197,37 @@ public class BossVoiceActingPlugin extends Plugin
 	/**
 	 * 	Attempt to download the corresponding audio file for the passed in Quote
 	 */
-	private boolean downloadQuote(Quote quote)
+	private void downloadQuote(Quote quote)
 	{
-		if (quote.getFile().getParentFile().mkdirs())
-		{
-			log.debug("mkdirs {}", quote.getFile().getParent());
-		}
-
 		// Define the output path and the url source of the file
 		Path outputPath = quote.getFile().toPath();
 		HttpUrl inputUrl = RAW_GITHUB.newBuilder()
 				.addPathSegment(quote.getBoss().getFolderName())
 				.addPathSegment(quote.getFilename()).build();
 
-		try (Response res = okHttpClient.newCall(new Request.Builder().url(inputUrl).build()).execute())
+		okHttpClient.newCall(new Request.Builder().url(inputUrl).build()).enqueue(new Callback()
 		{
-			if (!res.isSuccessful() || res.body() == null)
+			@Override
+			public void onFailure(Call call, IOException e)
 			{
-				log.error("failed to get audio file: {}",  res.body());
-				return false;
+				log.error("failed to get audio file: ", e);
 			}
 
-			// Checks the Content-Type to verify only "audio/wav" are downloaded
-			MediaType contentType = res.body().contentType();
-			if (contentType == null || !contentType.toString().equals("audio/wav"))
+			@Override
+			public void onResponse(Call call, Response res) throws IOException
 			{
-				log.error("failed to get audio file: Content-Type must be 'audio/wav' not '{}' ", contentType);
-				return false;
+				if (!res.isSuccessful() || res.body() == null)
+				{
+					log.error("failed to get audio file: {}",  res.body());
+					return;
+				}
+
+				// Copy the response body to the output location
+				Files.copy(new BufferedInputStream(res.body().byteStream()), outputPath, StandardCopyOption.REPLACE_EXISTING);
+				log.debug("downloaded audio file: {}", outputPath);
+				loadQuote(quote);
 			}
-
-			// Copy the response body to the output location
-			Files.copy(new BufferedInputStream(res.body().byteStream()), outputPath, StandardCopyOption.REPLACE_EXISTING);
-			log.debug("downloaded audio file {}: \"{}\", saved at {}", quote.getBoss(), quote.getLine(), outputPath);
-			return true;
-
-		} catch (IOException e)
-		{
-			log.error("failed to get audio file: ", e);
-			return false;
-		}
+		});
 	}
 
 	/**
@@ -257,7 +244,7 @@ public class BossVoiceActingPlugin extends Plugin
 				return;
 			}
 
-			// Load the fetched version.properties and read the current version
+			// Load the version.properties and read the current version
 			final Properties properties = new Properties();
 			properties.load(res.body().byteStream());
 			String currentVersion = properties.getProperty("version");
@@ -286,13 +273,23 @@ public class BossVoiceActingPlugin extends Plugin
 		// Search for the Boss and their Quote based on the event's actor and overhead text
 		String actorName = event.getActor().getName();
 		String line = event.getOverheadText();
-		Quote quote = findQuote(findBoss(actorName), line);
+		Boss boss = findBoss(actorName);
+		Quote quote = findQuote(boss, line);
+
+		if (quote == null)
+		{
+			if (boss != null)
+			{
+				log.error("missing boss voice line for {}: {}", actorName, line);
+			}
+			return;
+		}
 		log.debug("actor:{} line:{}", actorName, event.getOverheadText());
 
 		// Play the Clip if it is loaded
-		if (quote != null && loadedClips.containsKey(quote))
+		if (loadedClips.containsKey(quote))
 		{
-			log.debug("playing quote {}: \"{}\", from {}", quote.getBoss(), quote.getLine(), quote.getFilename());
+			log.debug("playing quote {}: \"{}\", from {}", boss, line, quote.getFilename());
 			playClip(loadedClips.get(quote));
 		}
 	}
@@ -304,14 +301,19 @@ public class BossVoiceActingPlugin extends Plugin
 		{
 			return;
 		}
-		if (BossVoiceActingConfig.VOLUME_KEY.equals(event.getKey()))
+
+		switch (event.getKey())
 		{
-			updateVolumeLevel();
-		}
-		if (BossVoiceActingConfig.ENABLED_BOSSES_KEY.equals(event.getKey()))
-		{
-			unloadClips();
-			loadClips();
+			case BossVoiceActingConfig.VOLUME_KEY:
+				for (Clip clip : loadedClips.values())
+				{
+					updateVolumeLevel(clip);
+				}
+				break;
+			case BossVoiceActingConfig.ENABLED_BOSSES_KEY:
+				unloadQuotes();
+				loadQuotes();
+				break;
 		}
 	}
 

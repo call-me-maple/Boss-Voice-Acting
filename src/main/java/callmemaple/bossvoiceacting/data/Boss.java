@@ -3,8 +3,9 @@ package callmemaple.bossvoiceacting.data;
 import lombok.Getter;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Arrays;
 
-@Getter
 public enum Boss
 {
     AHRIM("barrows", "Ahrim the Blighted"),
@@ -22,17 +23,18 @@ public enum Boss
     GENERAL_GRAARDOR("general-graardor", "General Graardor"),
     KRIL_TSUTSAROTH("k'ril-tsutsaroth", "K'ril Tsutsaroth"),
     KREEARRA("kree'arra", "Kree'arra"),
-    NEX("nex", "nex"),
-    VETION("vet'ion", "Vet'ion"),
-    CALVARION("vet'ion", "Calvar'ion"); // Calvar'ion shares quotes with Vet'ion, so they use the same audio files to avoid data redundancy
+    NEX("nex", "Nex"),
+    // Calvar'ion shares quotes with Vet'ion, so they use the same audio files
+    VETION("vet'ion", "Vet'ion", "Calvar'ion");
 
-    private final String name;
+    @Getter
     private final String folderName;
+    private final ArrayList<String> names;
 
-    Boss(String folderName, String name)
+    Boss(String folderName, String... names)
     {
-        this.name = name;
         this.folderName = folderName;
+        this.names = new ArrayList<>(Arrays.asList(names));
     }
 
     /**
@@ -43,7 +45,7 @@ public enum Boss
     {
         for (Boss boss: values())
         {
-            if (boss.name.equalsIgnoreCase(actorName))
+            if (boss.names.contains(actorName))
             {
                 return boss;
             }
